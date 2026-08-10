@@ -1,0 +1,18 @@
+# Dependencies
+node_modules/
+
+# ONNX models (fetched at deploy time, same convention as public/models/*.onnx)
+models/
+
+# Runtime image cache
+.cache/
+
+# Dev spike evidence (server/test-pipeline.mjs)
+.qa-evidence/
+
+# Downloaded fonts (deploy.sh fallback — fonts-noto-cjk preferred)
+fonts/
+
+# Local config / secrets
+.env
+config.json
