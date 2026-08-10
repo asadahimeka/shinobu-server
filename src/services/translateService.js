@@ -30,7 +30,7 @@
  * in parallel, so concurrent HTTP requests may all download/cache-check in
  * parallel while only the pipeline runs serialize.
  *
- * AGPL-3.0-only.
+ * GPL-3.0-only.
  */
 import fs from 'node:fs'
 import path from 'node:path'
@@ -259,7 +259,7 @@ export async function translateByUrl(imageUrl, userOptions = {}) {
   return { pngBuffer: png, noText, regions, durationMs, cacheHit: false }
 }
 
-// Smoke test when executed directly: `node server/src/services/translateService.js`
+// Smoke test when executed directly: `node src/services/translateService.js`
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   console.log(
     `[translateService] loaded — LLM ${config.LLM_API_KEY ? 'configured' : 'MISSING'} ` +

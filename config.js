@@ -4,13 +4,13 @@
  * Precedence (low → high):
  *   1. Built-in defaults below
  *   2. process.env (PORT, TOKEN, LLM_*, IMAGE_PROXY, CACHE_DIR, MAX_IMAGE_BYTES, FONT_PATH)
- *   3. server/config.json override (gitignored) — merged over the env-derived object
+ *   3. config.json override (gitignored) — merged over the env-derived object
  *
  * Usage:
  *   import config from './config.js'
  *
  * Smoke test (prints the resolved config object):
- *   node server/config.js
+ *   node config.js
  */
 import fs from 'node:fs'
 import path from 'node:path'
@@ -63,7 +63,7 @@ if (fs.existsSync(configPath)) {
 
 export default config
 
-// Print config when executed directly: `node server/config.js`
+// Print config when executed directly: `node config.js`
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   console.log(JSON.stringify(config, null, 2))
 }

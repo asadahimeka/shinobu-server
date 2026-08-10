@@ -1,10 +1,10 @@
 /**
- * @file Model registry — Node replacement (server/src/translate/shinobu copy).
+ * @file Model registry — Node replacement (src/translate/shinobu copy).
  *
  * Server wiring (task 1b): replaces the browser CDN triple-mode registry with a
- * wrapper around `server/src/pipeline/nodeModelRegistry.js`:
+ * wrapper around `src/pipeline/nodeModelRegistry.js`:
  *   - manifest is loaded from LOCAL disk (`fs.readFileSync`, self-contained —
- *     resolved against the server root via server/src/util/paths.js)
+ *     resolved against the server root via src/util/paths.js)
  *   - model URLs resolve to ABSOLUTE filesystem paths (getModelUrlNode —
  *     onnxruntime-node rejects file:// URLs, see nodeOnnxBridge contract)
  *   - `runtime` normalizes to `['cpu']` (normalizeRuntimeNode)

@@ -1,7 +1,7 @@
 /**
  * Bearer token authentication middleware (Task 5).
  *
- * Token comes from `config.TOKEN` (server/config.js — env / config.json).
+ * Token comes from `config.TOKEN` (config.js — env / config.json).
  *
  * Modes:
  *   - TOKEN set     → `Authorization: Bearer <token>` must match exactly.

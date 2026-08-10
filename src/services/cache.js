@@ -10,7 +10,7 @@
  *     field (e.g. targetLang) → different signature → cache miss → re-translate.
  *
  * Storage layout (CACHE_DIR, default `.cache/` resolved against the server
- * root via server/src/util/paths.js so behaviour is identical regardless of
+ * root via src/util/paths.js so behaviour is identical regardless of
  * process cwd; absolute env values pass through):
  *   <sha256>.<configSig>.png          — translated result bytes
  *   <sha256>.<configSig>.meta.json    — {sha256, configSig, config, createdAt, regionCount, durationMs}
@@ -33,7 +33,7 @@ import config from '../../config.js'
 import { resolveFromServerRoot } from '../util/paths.js'
 
 // Self-contained: CACHE_DIR resolves against the server root (absolute env
-// values pass through) — nothing outside server/ is ever read or written.
+// values pass through) — nothing outside  is ever read or written.
 export const cacheDir = resolveFromServerRoot(config.CACHE_DIR)
 
 const PNG_SUFFIX = '.png'

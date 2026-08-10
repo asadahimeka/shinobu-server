@@ -38,7 +38,7 @@
  * No persistence here — callers (T10) hand the Buffer to the cache module.
  *
  * Smoke test:
- *   node server/src/services/imageFetcher.js
+ *   node src/services/imageFetcher.js
  */
 import { pathToFileURL } from 'node:url'
 import config from '../../config.js'
@@ -220,7 +220,7 @@ export async function fetchImageBytes(imageUrl) {
   throw lastError
 }
 
-// Smoke test when executed directly: `node server/src/services/imageFetcher.js`
+// Smoke test when executed directly: `node src/services/imageFetcher.js`
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   console.log(
     `[imageFetcher] IMAGE_PROXY=${config.IMAGE_PROXY || '(none)'} MAX_IMAGE_BYTES=${MAX_IMAGE_BYTES} ` +

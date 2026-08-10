@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ============================================================================
-# pixiv-viewer — server/deploy.sh
+# pixiv-viewer — deploy.sh
 #
 # Bare-metal deployment for the manga-translation server. Tested on Ubuntu
 # 22.04/24.04 (apt) and AlmaLinux/RHEL-family (dnf); glibc only —
@@ -15,8 +15,8 @@
 #   2. Node.js >= 20 (existing install kept; else installed via nvm)
 #   3. CJK fonts (fonts-noto-cjk via apt / google-noto-sans-cjk-fonts via dnf,
 #      else SourceHanSans download)
-#   4. ONNX models -> server/models/ (sha256-verified, manifest-driven)
-#   5. server/.env from .env.example (interactive fill when a TTY)
+#   4. ONNX models -> models/ (sha256-verified, manifest-driven)
+#   5. .env from .env.example (interactive fill when a TTY)
 #   6. Startup instructions (does NOT auto-start the service)
 #
 # Idempotent: every step guards on "already done"; safe to re-run.
@@ -27,7 +27,7 @@
 #   DEPLOY_NONINTERACTIVE=1    don't prompt for .env values
 #   MODELS_DIR                  models dir override (same env as the runtime:
 #                               absolute passes through, relative resolves
-#                               against the server root; default server/models)
+#                               against the server root; default models)
 #   MODEL_MANIFEST_URL          manifest URL for the self-contained CDN path
 #                               (default derived from VUE_APP_MODEL_RELEASE_TAG)
 #   MODEL_SOURCE_DIR            optional source dir to copy models + models.json
@@ -46,7 +46,7 @@
 #     (documented note only — NOT auto-installed by this script):
 #       dnf install -y libpng-devel freetype-devel pixman-devel
 #
-# Model resolution (self-contained — the server reads ONLY server/models/):
+# Model resolution (self-contained — the server reads ONLY models/):
 #   manifest source (in priority order):
 #     1. already present at $MODELS_DIR/models.json       (idempotency)
 #     2. $MODEL_SOURCE_DIR/models.json                    (checkout convenience)
@@ -74,20 +74,20 @@ DEPLOY_NONINTERACTIVE="${DEPLOY_NONINTERACTIVE:-0}"
 NODE_MAJOR_MIN=20
 
 # Model CDN defaults — a sensible release tag ships with the script so a bare
-# `bash server/deploy.sh` with NO env vars still resolves the manifest + model
+# `bash deploy.sh` with NO env vars still resolves the manifest + model
 # download URLs out-of-the-box (matching the project .env.example suggestion).
 DEFAULT_MODEL_RELEASE_TAG="${DEFAULT_MODEL_RELEASE_TAG:-models-v0.7.0}"
 VUE_APP_MODEL_RELEASE_TAG="${VUE_APP_MODEL_RELEASE_TAG:-$DEFAULT_MODEL_RELEASE_TAG}"
 
 # ---------------------------------------------------------------------------
 # Paths (everything resolves under the server dir — self-contained deploy:
-# copy server/ alone and it works, no repo-root anchoring, no public/models)
+# copy  alone and it works, no repo-root anchoring, no public/models)
 # ---------------------------------------------------------------------------
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 SERVER_DIR="$SCRIPT_DIR"
 
 # MODELS_DIR honors the same env override as the runtime
-# (server/src/util/paths.js): absolute passes through, relative resolves
+# (src/util/paths.js): absolute passes through, relative resolves
 # against the server root; default <script-dir>/models.
 if [ -n "${MODELS_DIR:-}" ]; then
   case "$MODELS_DIR" in
@@ -102,7 +102,7 @@ FONTS_DIR="$SERVER_DIR/fonts"
 
 # Optional convenience: copy models + models.json from a source directory
 # first (sha256-verified). E.g. a pixiv-viewer checkout:
-#   MODEL_SOURCE_DIR="$PWD/public/models" bash server/deploy.sh
+#   MODEL_SOURCE_DIR="$PWD/public/models" bash deploy.sh
 # NOT a default — the server is self-contained via the CDN path below.
 MODEL_SOURCE_DIR="${MODEL_SOURCE_DIR:-}"
 
@@ -372,12 +372,12 @@ install_cjk_fonts() {
     skip "DEPLOY_SKIP_APT=1 — distro font package skipped, using download fallback"
   fi
 
-  # Fallback: SourceHanSans to server/fonts/
+  # Fallback: SourceHanSans to fonts/
   install_source_han_sans
 }
 
 # ---------------------------------------------------------------------------
-# Step 4/6 — ONNX models -> server/models/
+# Step 4/6 — ONNX models -> models/
 # ---------------------------------------------------------------------------
 # CDN URL resolution — mirrors modelRegistry.js resolveModelUrl()
 resolve_model_url() { # filename
@@ -506,7 +506,7 @@ sync_models() {
 }
 
 # ---------------------------------------------------------------------------
-# Step 5/6 — server/.env
+# Step 5/6 — .env
 # ---------------------------------------------------------------------------
 # Safe env key writer (special chars in values are preserved)
 set_env_value() { # key value
@@ -546,7 +546,7 @@ prompt_env() { # key description
 }
 
 setup_env() {
-  step "Step 5/6: server/.env"
+  step "Step 5/6: .env"
 
   if [ -f "$ENV_FILE" ]; then
     skip "$ENV_FILE already exists"

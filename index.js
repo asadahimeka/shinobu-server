@@ -2,7 +2,7 @@
  * Server entry point (Task 5).
  *
  * Wires config + translate service (DI) + starts listening.
- * The real translateService (T10, `server/src/services/translateService.js`)
+ * The real translateService (T10, `src/services/translateService.js`)
  * is imported lazily; until it lands the server boots with a stub that answers
  * the same DI contract (startup warns when the stub is active).
  */

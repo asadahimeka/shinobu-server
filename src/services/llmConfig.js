@@ -6,7 +6,7 @@
  *
  * Config precedence (low → high):
  *   1. Built-in defaults below
- *   2. server/config.js values (env / config.json)
+ *   2. config.js values (env / config.json)
  *   3. userOverrides (per-request overrides such as targetLang / llmModel)
  *
  * Contract alignment:

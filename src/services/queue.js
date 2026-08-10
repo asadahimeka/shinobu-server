@@ -22,7 +22,7 @@
  *   onIdle()    → Promise<void>    resolves once nothing is running/waiting.
  *
  * Smoke test:
- *   node server/src/services/queue.js
+ *   node src/services/queue.js
  */
 import { pathToFileURL } from 'node:url'
 
@@ -126,7 +126,7 @@ export function onIdle() {
   })
 }
 
-// Smoke test when executed directly: `node server/src/services/queue.js`
+// Smoke test when executed directly: `node src/services/queue.js`
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   console.log(`[queue] MAX_WAITING=${MAX_WAITING} WAIT_TIMEOUT_MS=${WAIT_TIMEOUT_MS} idle=${!isBusy()}`)
 }

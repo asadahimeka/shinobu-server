@@ -1,9 +1,9 @@
 /**
- * @file ONNX Bridge — Node replacement (server/src/translate/shinobu copy).
+ * @file ONNX Bridge — Node replacement (src/translate/shinobu copy).
  *
  * Server wiring (task 1b): this copy replaces the browser-only lazy Comlink
  * worker bridge with a direct wrapper around
- * `server/src/pipeline/nodeOnnxBridge.js` (onnxruntime-node, CPU EP).
+ * `src/pipeline/nodeOnnxBridge.js` (onnxruntime-node, CPU EP).
  *
  * Adaptation layer:
  *   - Pipeline feeds are `TensorTransport` objects `{ data, dims, type }`

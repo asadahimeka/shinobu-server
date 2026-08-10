@@ -7,7 +7,7 @@ models/
 # Runtime image cache
 .cache/
 
-# Dev spike evidence (server/test-pipeline.mjs)
+# Dev spike evidence (test-pipeline.mjs)
 .qa-evidence/
 
 # Downloaded fonts (deploy.sh fallback — fonts-noto-cjk preferred)

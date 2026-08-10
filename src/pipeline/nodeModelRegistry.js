@@ -16,12 +16,12 @@
  *   - `normalizeRuntimeNode` always returns `['cpu']`: onnxruntime-node is a
  *     CPU Execution Provider (no webgpu/webnn/wasm EP distinction).
  *
- * Server-root anchoring (self-contained — nothing outside server/ is read):
- *   MODELS_DIR is resolved by server/src/util/paths.js from `import.meta.url`
+ * Server-root anchoring (self-contained — nothing outside  is read):
+ *   MODELS_DIR is resolved by src/util/paths.js from `import.meta.url`
  *   (never cwd); the `MODELS_DIR` env var overrides it (absolute passes
  *   through, relative resolves against the server root).
  *
- * Contract with nodeOnnxBridge.js (server/src/pipeline/):
+ * Contract with nodeOnnxBridge.js (src/pipeline/):
  *   `getModelUrlNode(name)` returns the ABSOLUTE filesystem path of the model
  *   file. Verified empirically against onnxruntime-node@1.27.0: its
  *   `InferenceSession.create` REJECTS `file://` URLs ("File doesn't exist" —
@@ -50,7 +50,7 @@ export const MANIFEST_PATH = path.resolve(MODELS_DIR, 'models.json')
  * @typedef {Object} ManifestModel
  * @property {string} name - Model name key
  * @property {string} task - Model task: 'detection' | 'inpainting' | 'ocr'
- * @property {string} url - Model file name relative to server/models/
+ * @property {string} url - Model file name relative to models/
  * @property {string|Array<number>} input - Input shape or descriptor
  * @property {Array<string>} [runtime] - Supported runtime providers (browser)
  * @property {string} [dictUrl] - Dictionary file name (OCR models)
@@ -128,7 +128,7 @@ export function getModelConfigNode(name) {
 /**
  * Resolve the absolute filesystem path of a model file.
  * The manifest `url` is a bare filename; resolve against MODELS_DIR
- * (server/models, self-contained — see header note).
+ * (models, self-contained — see header note).
  * @param {string} name - Model name key
  * @returns {string} Absolute path to the model file
  */
@@ -173,7 +173,7 @@ export function getModelUrlNode(name) {
   return resolveModelPath(name)
 }
 
-// Allow `node server/src/pipeline/nodeModelRegistry.js` self-smoke:
+// Allow `node src/pipeline/nodeModelRegistry.js` self-smoke:
 // prints resolved paths for every manifest model and checks existence.
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const manifest = loadManifestNode()

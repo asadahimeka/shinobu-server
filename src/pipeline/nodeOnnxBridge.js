@@ -19,8 +19,8 @@
  *     CPU stubs that reject with UNSUPPORTED_ON_CPU.
  *
  * Ported from ShinobuTranslator
- * `packages/model-runtime/src/runtime/onnxNodeBridge.ts` (TS → JS,
- * GPL-3.0 → AGPL-3.0 port). Session lifecycle mirrors the upstream: create →
+ * `packages/model-runtime/src/runtime/onnxNodeBridge.ts` (TS → JS).
+ * Session lifecycle mirrors the upstream: create →
  * run → dispose, all protected by the server serial queue (onnxruntime-node
  * sessions are not thread-safe).
  */

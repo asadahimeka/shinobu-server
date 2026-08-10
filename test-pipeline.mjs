@@ -1,27 +1,27 @@
 #!/usr/bin/env node
 /**
- * @file server/test-pipeline.mjs — task 1b spike: run the shinobu manga
+ * @file test-pipeline.mjs — task 1b spike: run the shinobu manga
  * translation pipeline entirely in Node (CPU, onnxruntime-node) against a
  * Japanese manga page.
  *
  * Wires the three server seam modules into the server-hosted pipeline copy:
- *   - nodePlatform            → server/src/pipeline/nodePlatform.js (node-canvas)
- *   - nodeOnnxBridge          → server/src/pipeline/nodeOnnxBridge.js (via the
+ *   - nodePlatform            → src/pipeline/nodePlatform.js (node-canvas)
+ *   - nodeOnnxBridge          → src/pipeline/nodeOnnxBridge.js (via the
  *                               copy's runtime/onnxBridge.js wrapper)
- *   - nodeModelRegistry       → server/src/pipeline/nodeModelRegistry.js (via
+ *   - nodeModelRegistry       → src/pipeline/nodeModelRegistry.js (via
  *                               the copy's runtime/modelRegistry.js wrapper)
  *
- * Usage: LLM_API_KEY=xxx node server/test-pipeline.mjs <jp-image> [--stub-llm]
- *   (LLM_API_KEY from the environment — the server/.env / server config.js
+ * Usage: LLM_API_KEY=xxx node test-pipeline.mjs <jp-image> [--stub-llm]
+ *   (LLM_API_KEY from the environment — the .env / server config.js
  *   convention; when unset a stub key is used and translations degrade to
  *   source text with a warning.)
  *
- * Evidence outputs (inside server/, gitignored):
- *   server/.qa-evidence/task-1-result.png        — resultCanvas (translated page)
- *   server/.qa-evidence/task-1-stages.json       — stageTimings + region dump
- *   server/.qa-evidence/task-1-textmetrics.log   — node-canvas measureText probe
+ * Evidence outputs (inside , gitignored):
+ *   .qa-evidence/task-1-result.png        — resultCanvas (translated page)
+ *   .qa-evidence/task-1-stages.json       — stageTimings + region dump
+ *   .qa-evidence/task-1-textmetrics.log   — node-canvas measureText probe
  *
- * AGPL-3.0-only — pipeline copy derived from ShinobuTranslator (GPL-3.0).
+ * GPL-3.0-only — pipeline copy derived from ShinobuTranslator (GPL-3.0).
  */
 
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs'
@@ -61,7 +61,7 @@ function buildConfig() {
   const apiKey = realKey || 'sk-stub-invalid-key'
   if (!realKey) {
     console.warn('[config] LLM_API_KEY 未设置 — 使用 stub key，翻译将退化为保留原文')
-    console.warn('[config] 用法: LLM_API_KEY=xxx node server/test-pipeline.mjs <img>')
+    console.warn('[config] 用法: LLM_API_KEY=xxx node test-pipeline.mjs <img>')
   }
   return {
     sourceLang: 'ja',
@@ -92,7 +92,7 @@ async function main() {
   const argv = process.argv.slice(2)
   const imagePath = argv.find(arg => !arg.startsWith('-'))
   if (!imagePath || !existsSync(imagePath)) {
-    console.error('用法: node server/test-pipeline.mjs <日文漫画图片>')
+    console.error('用法: node test-pipeline.mjs <日文漫画图片>')
     process.exit(1)
   }
 
