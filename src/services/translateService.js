@@ -42,6 +42,7 @@ import { fetchImageBytes } from './imageFetcher.js'
 import { sha256, configSignature, get, set, cacheDir } from './cache.js'
 import { buildTranslateConfig } from './llmConfig.js'
 import { enqueue } from './queue.js'
+import * as jobStore from './jobStore.js'
 import { nodePlatform } from '../pipeline/nodePlatform.js'
 import { runPipeline, PipelineStageError } from '../translate/shinobu/index.js'
 
@@ -179,7 +180,7 @@ async function readMeta(sha, configSig) {
  * @returns {Promise<{pngBuffer: Buffer, noText: boolean, regions: number, durationMs: number, cacheHit: boolean}>}
  * @throws {{error: string, message: string, status?: number, stage?: string, retryAfter?: number}}
  */
-export async function translateByUrl(imageUrl, userOptions = {}) {
+export async function translateByUrl(imageUrl, userOptions = {}, onProgress) {
   const startedAt = Date.now()
   console.log(new Date(startedAt).toLocaleString('zh'), 'translateByUrl:', imageUrl)
 
@@ -217,18 +218,19 @@ export async function translateByUrl(imageUrl, userOptions = {}) {
   // ---- 5. run pipeline (serialized through the ONNX-safe queue) ----
   const file = new File([Buffer.from(imageBytes)], 'page.png', { type: 'image/png' })
   const seenStages = new Set()
-  const onProgress = progress => {
+  const progressHandler = progress => {
     const key = `${progress.stage}:${progress.percent ?? 0}`
     if (seenStages.has(key)) return
     seenStages.add(key)
     const percent = progress.percent !== undefined ? ` ${progress.percent}%` : ''
     console.log(`  [translate:stage] ${progress.stage}${percent} — ${progress.detail}`)
+    onProgress?.(progress)
   }
 
   const pipelineStart = Date.now()
   let artifacts
   try {
-    artifacts = await enqueue(() => runPipeline(file, config, onProgress, { platform: nodePlatform }))
+    artifacts = await enqueue(() => runPipeline(file, config, progressHandler, { platform: nodePlatform }))
   } catch (err) {
     throw normalizeError(err)
   }
@@ -257,6 +259,69 @@ export async function translateByUrl(imageUrl, userOptions = {}) {
   await set(sha, config, png, { regionCount: regions, durationMs, config })
 
   return { pngBuffer: png, noText, regions, durationMs, cacheHit: false }
+}
+
+/**
+ * Submit an async translation job. Returns immediately with a job id; the
+ * pipeline runs in the background through the same serial queue.
+ * @param {string} imageUrl
+ * @param {Object} [userOptions]
+ * @returns {Promise<{id: string}>}
+ */
+export async function submitTranslate(imageUrl, userOptions = {}) {
+  const { id } = jobStore.createJob(imageUrl, userOptions)
+  // 不 await — 后台执行；同步错误（参数缺失）由调用方先校验。
+  // runJob 内部已全量 try/catch 把结构化错误写回 job；外层 catch 只是
+  // 兜底防 unhandledRejection，且必须记日志（绝不静默吞掉）。
+  runJob(id, imageUrl, userOptions).catch(err =>
+    console.error('[job] runner crashed', err)
+  )
+  return { id }
+}
+
+/**
+ * Background job runner — wraps translateByUrl, feeds progress into the job,
+ * persists the PNG on success, records the structured error on failure.
+ * @param {string} id
+ * @param {string} imageUrl
+ * @param {Object} userOptions
+ */
+async function runJob(id, imageUrl, userOptions) {
+  jobStore.updateJob(id, { status: 'running' })
+  try {
+    const result = await translateByUrl(imageUrl, userOptions, progress =>
+      jobStore.updateJob(id, {
+        stage: progress.stage,
+        percent: progress.percent,
+      })
+    )
+    await jobStore.saveJobResult(id, result.pngBuffer, {
+      regions: result.regions,
+      durationMs: result.durationMs,
+      noText: result.noText,
+      cacheHit: result.cacheHit,
+    })
+  } catch (err) {
+    const code = err && err.error ? err.error : 'INTERNAL'
+    const message = (err && err.message) || '翻译失败'
+    jobStore.updateJob(id, { status: 'failed', error: code, message })
+  }
+}
+
+/**
+ * @param {string} id
+ * @returns {Promise<import('./jobStore.js').Job | null>}
+ */
+export function getTranslateJob(id) {
+  return Promise.resolve(jobStore.getJob(id))
+}
+
+/**
+ * @param {string} id
+ * @returns {Promise<Buffer | null>}
+ */
+export function getTranslateJobResult(id) {
+  return jobStore.loadJobResult(id)
 }
 
 // Smoke test when executed directly: `node src/services/translateService.js`
