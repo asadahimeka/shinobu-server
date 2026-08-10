@@ -171,10 +171,10 @@ export function createApp({ translateService }) {
       }
       const png = await translateService.getTranslateJobResult(req.params.jobId)
       if (!png) return sendError(res, { error: 'JOB_NOT_FOUND', message: '任务结果不存在' })
-      res.set('X-Translate-Duration', String(Math.round(job.result?.durationMs || 0)))
-      res.set('X-Translate-Cache', job.result?.cacheHit ? 'hit' : 'miss')
-      res.set('X-Translate-Regions', String(job.result?.regions || 0))
-      if (job.result?.noText) res.set('X-Translate-NoText', '1')
+      res.set('X-Translate-Duration', String(Math.round(job.resultMeta?.durationMs || 0)))
+      res.set('X-Translate-Cache', job.resultMeta?.cacheHit ? 'hit' : 'miss')
+      res.set('X-Translate-Regions', String(job.resultMeta?.regions || 0))
+      if (job.resultMeta?.noText) res.set('X-Translate-NoText', '1')
       res.type('png')
       res.send(png)
     } catch (err) {

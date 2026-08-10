@@ -55,8 +55,11 @@ function stubError(error, message, extra) {
   return err
 }
 
-/** @type {Map<string, {id: string, status: string, result?: Object, error?: string, message?: string}>} */
+/** @type {Map<string, {id: string, status: string, resultMeta?: Object, error?: string, message?: string}>} */
 const stubJobs = new Map()
+
+/** 已完成的 PNG 缓冲单独存放，避免经 getTranslateJob 泄漏（对齐真实服务落盘行为） */
+const stubPngs = new Map()
 
 async function runStubJob(id, imageUrl) {
   const job = stubJobs.get(id)
@@ -64,7 +67,15 @@ async function runStubJob(id, imageUrl) {
   try {
     const result = await stubTranslateByUrl(imageUrl)
     job.status = 'done'
-    job.result = result
+    // 与真实服务（translateService.saveJobResult）一致的 job 形态：
+    // resultMeta 挂在 job 上，pngBuffer 单独存放（真实服务落盘，stub 用 stubPngs）
+    job.resultMeta = {
+      regions: result.regions,
+      durationMs: result.durationMs,
+      noText: result.noText,
+      cacheHit: result.cacheHit,
+    }
+    stubPngs.set(id, result.pngBuffer)
   } catch (err) {
     job.status = 'failed'
     job.error = err.error || 'INTERNAL'
@@ -89,7 +100,7 @@ export function createStubTranslateService() {
     async getTranslateJobResult(id) {
       const job = stubJobs.get(id)
       if (!job || job.status !== 'done') return null
-      return job.result.pngBuffer
+      return stubPngs.get(id)
     },
   }
 }
