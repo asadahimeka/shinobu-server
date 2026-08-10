@@ -122,7 +122,10 @@ export async function getModelUrl(name) {
 // Session cache (dedup, reuse) — same shape as the browser registry
 // ---------------------------------------------------------------------------
 
-/** @type {Map<string, WorkerSessionHandle>} — Resolved session handles */
+/** 同时驻留的最大 session 数（2C2G 下默认 1，可经 MAX_RESIDENT_SESSIONS 调大） */
+const MAX_RESIDENT_SESSIONS = parseInt(process.env.MAX_RESIDENT_SESSIONS, 10) || 1
+
+/** @type {Map<string, {handle: WorkerSessionHandle, lastUsed: number}>} — LRU entries */
 const sessionCache = new Map()
 
 /** @type {Map<string, Promise<WorkerSessionHandle>>} — In-flight creation promises */
@@ -150,14 +153,30 @@ export async function getModelSession(name, preferred, sessionOptions) {
   const cacheKey = `${name}:${dedupedRuntime.join(',')}:${sessionOptionsKey}`
 
   const cached = sessionCache.get(cacheKey)
-  if (cached) return cached
+  if (cached) {
+    cached.lastUsed = Date.now()
+    // LRU：命中后移到 Map 末尾（Map 按插入序迭代）。这样 keys().next()
+    // 始终是最久未用的条目，驱逐逻辑才真正是 LRU 而非 FIFO。
+    sessionCache.delete(cacheKey)
+    sessionCache.set(cacheKey, cached)
+    return cached.handle
+  }
 
   const pending = sessionPromiseCache.get(cacheKey)
   if (pending) return pending
 
+  // 驻留数已达上限 → 先驱逐最久未用的 session（按整个 name 前缀驱逐，
+  // 保证同一模型的所有 cacheKey 变体一起释放）。
+  if (sessionCache.size >= MAX_RESIDENT_SESSIONS) {
+    const oldestKey = sessionCache.keys().next().value
+    const oldest = sessionCache.get(oldestKey)
+    sessionCache.delete(oldestKey)
+    await disposeSession(oldest.handle.sessionId)
+  }
+
   const creation = createSession(name, model.url, runtime, sessionOptions)
     .then(handle => {
-      sessionCache.set(cacheKey, handle)
+      sessionCache.set(cacheKey, { handle, lastUsed: Date.now() })
       return handle
     })
     .finally(() => {
@@ -175,10 +194,11 @@ export async function getModelSession(name, preferred, sessionOptions) {
 export async function disposeModelSession(name) {
   for (const key of [...sessionCache.keys()]) {
     if (key.startsWith(`${name}:`)) {
+      const entry = sessionCache.get(key)
       sessionCache.delete(key)
+      await disposeSession(entry.handle.sessionId)
     }
   }
-  await disposeSession(name)
 }
 
 /**
@@ -186,8 +206,9 @@ export async function disposeModelSession(name) {
  * @returns {Promise<void>}
  */
 export async function disposeAllModelSessions() {
+  const entries = [...sessionCache.values()]
   sessionCache.clear()
   sessionPromiseCache.clear()
   manifestCache = null
-  await disposeAll()
+  await Promise.all(entries.map(entry => disposeSession(entry.handle.sessionId)))
 }
