@@ -22,6 +22,13 @@ const SWEEP_INTERVAL_MS = 5 * 60_000
 const jobsDir = path.join(cacheDir, 'jobs')
 fs.mkdirSync(jobsDir, { recursive: true })
 
+// 启动时清理上次崩溃遗留的 tmp 写文件（原子写中断产物）
+for (const f of fs.readdirSync(jobsDir)) {
+  if (f.includes('.tmp-')) {
+    fs.unlinkSync(path.join(jobsDir, f))
+  }
+}
+
 /** @type {Map<string, Job>} */
 const jobs = new Map()
 

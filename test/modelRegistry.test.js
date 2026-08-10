@@ -16,7 +16,12 @@ import { test, beforeEach, mock } from 'node:test'
 import assert from 'node:assert/strict'
 import { createRequire } from 'node:module'
 import { getModelUrlNode } from '../src/pipeline/nodeModelRegistry.js'
-import { getModelSession, disposeAllModelSessions } from '../src/translate/shinobu/runtime/modelRegistry.js'
+
+// 驱逐测试依赖 cap=1；默认值已改为 4，必须在模块加载前钉住 env（故用动态 import）
+process.env.MAX_RESIDENT_SESSIONS = '1'
+const { getModelSession, disposeAllModelSessions } = await import(
+  '../src/translate/shinobu/runtime/modelRegistry.js'
+)
 
 const require = createRequire(import.meta.url)
 const ort = require('onnxruntime-node')

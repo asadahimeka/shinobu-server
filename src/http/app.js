@@ -95,8 +95,13 @@ function sendError(res, err) {
  * @returns {import('express').Express}
  */
 export function createApp({ translateService }) {
-  if (!translateService || typeof translateService.translateByUrl !== 'function') {
-    throw new TypeError('createApp: translateService.translateByUrl(imageUrl, userOptions) is required')
+  if (!translateService ||
+      typeof translateService.submitTranslate !== 'function' ||
+      typeof translateService.getTranslateJob !== 'function' ||
+      typeof translateService.getTranslateJobResult !== 'function') {
+    throw new TypeError(
+      'createApp: translateService.submitTranslate/getTranslateJob/getTranslateJobResult are required'
+    )
   }
 
   const app = express()
