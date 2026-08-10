@@ -26,6 +26,7 @@
  */
 
 import * as ort from 'onnxruntime-node'
+import config from '../../config.js'
 
 /** @type {Map<string, ort.InferenceSession>} */
 const sessions = new Map()
@@ -82,6 +83,8 @@ export async function createSession(modelKey, modelUrl, preferred, sessionOption
   }
   const session = await ort.InferenceSession.create(modelUrl, {
     executionProviders: ['cpu'],
+    intraOpNumThreads: config.ORT_THREADS,
+    interOpNumThreads: 1,
     ...sessionOptions,
   })
   sessions.set(sessionId, session)
