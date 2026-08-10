@@ -1,5 +1,7 @@
 # Shinobu 服务端漫画翻译 API
 
+> Reference: https://github.com/DonutShinobu/ShinobuTranslator
+
 自建 Node 漫画翻译服务：接收图片 URL → 服务端完成完整漫画翻译管线（检测/OCR/修复/翻译/排版）→ 返回翻译后的 PNG 整图。
 
 - 基础路径：`http://<host>:<port>`（默认 `3000`，可用 `PORT` 环境变量覆盖）
