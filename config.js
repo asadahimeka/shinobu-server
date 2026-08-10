@@ -35,7 +35,8 @@ function parseBytes(value, fallback) {
   return Math.floor(parseFloat(m[1]) * table[(m[2] || 'b').toLowerCase()])
 }
 
-const DEFAULT_MAX_IMAGE_BYTES = 20 * 1024 * 1024 // 20MB
+const DEFAULT_MAX_IMAGE_BYTES = 10 * 1024 * 1024 // 10MB (2C2G 内存适配)
+const DEFAULT_ORT_THREADS = 1 // 2C 留一核给 HTTP；单槽队列下 1 线程足够
 
 const config = {
   PORT: parseInt(process.env.PORT, 10) || 3000,
@@ -44,6 +45,7 @@ const config = {
   LLM_API_KEY: process.env.LLM_API_KEY || '',
   LLM_MODEL: process.env.LLM_MODEL || 'THUDM/GLM-4-9B-0414',
   LLM_TIMEOUT: parseInt(process.env.LLM_TIMEOUT, 10) || 60000,
+  ORT_THREADS: parseInt(process.env.ORT_THREADS, 10) || DEFAULT_ORT_THREADS,
   IMAGE_PROXY: process.env.IMAGE_PROXY || '',
   CACHE_DIR: process.env.CACHE_DIR || '.cache/',
   MAX_IMAGE_BYTES: parseBytes(process.env.MAX_IMAGE_BYTES, DEFAULT_MAX_IMAGE_BYTES),
