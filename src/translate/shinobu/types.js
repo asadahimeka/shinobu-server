@@ -145,7 +145,6 @@ export const BubbleDetection = {}
  * @property {boolean} eraseDebug - Enable erase debug logging
  * @property {boolean} collectDebugLog - Collect debug logs
  * @property {'paddleocr_v6_medium'} ocrEngine - OCR engine to use
- * @property {boolean} [ocrCompactActiveBatch] - Internal benchmark override; production OCR picks its batch compaction policy automatically
  * @property {('off'|'balanced')} [ocrPostFilter] - OCR false-positive post-filter mode; defaults to balanced when omitted
  * @property {'translate'|'erase'|'original'} processMode - Processing mode
  * @property {string} [diagnosticRunId] - Diagnostic run identifier
@@ -332,7 +331,6 @@ export const OcrRunDebugRegionFallback = {}
  * @property {Array<string>} regionIds - Region identifiers
  * @property {'batch'|'fallback'} decodeMode - Decode mode
  * @property {boolean} [encoderCache] - Whether encoder cache was used
- * @property {boolean} [compactActiveBatch] - Whether active batch compaction was used
  * @property {number} [encoderRunMs] - Encoder run duration in milliseconds
  * @property {number} [decoderRunMs] - Decoder run duration in milliseconds
  * @property {number} decodeAccepted - Number of accepted decodes

@@ -42,11 +42,6 @@ registerOcrProviderAlias('paddleocr_v6_small', 'paddleocr_v6_medium')
  */
 export const OcrResult = {}
 
-/**
- * @typedef {Object} RunOcrOptions
- * @property {boolean} [compactActiveBatch]
- */
-
 // ---------------------------------------------------------------------------
 // mapResultsToRegions
 // ---------------------------------------------------------------------------
@@ -176,15 +171,13 @@ function normalizeOcrProviderName(providerName) {
  * @param {Array<TextRegion>} detectedRegions
  * @param {string} [providerName] - OCR engine name (default: paddleocr_v6_medium)
  * @param {PlatformProvider} [platform]
- * @param {RunOcrOptions} [_options]
  * @returns {Promise<OcrResult>}
  */
 export async function runOcr(
   image,
   detectedRegions,
   providerName,
-  platform,
-  _options
+  platform
 ) {
   if (!platform) {
     throw new Error('OCR 需要 PlatformProvider')

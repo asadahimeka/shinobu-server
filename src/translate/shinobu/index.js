@@ -752,9 +752,7 @@ export async function runPipeline(file, config, onProgress, options = {}) {
     if (!stopAfterOrder && inpaintRuntimeProbeSchedule === 'current') {
       startInpaintRuntimeProbe()
     }
-    const ocrResult = await runOcr(image, latestRegions, config.ocrEngine, platform, {
-      compactActiveBatch: config.ocrCompactActiveBatch,
-    })
+    const ocrResult = await runOcr(image, latestRegions, config.ocrEngine, platform)
     throwIfCancelled(signal)
     latestRegions = ocrResult.regions
     stageRegions.ocr = cloneTextRegions(latestRegions)
