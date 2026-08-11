@@ -28,16 +28,6 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-// ---------------------------------------------------------------------------
-// Node global shims — MUST run before any pipeline module import
-// ---------------------------------------------------------------------------
-// llm.js / googleWeb.js check `window.__httpRequest__` unguarded. In Node only
-// fetch exists; pointing `window` at globalThis makes `window.__httpRequest__`
-// undefined → both translators take their fetch() path.
-if (!('window' in globalThis)) {
-  globalThis.window = globalThis
-}
-
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const EVIDENCE_DIR = path.join(__dirname, '.qa-evidence')
 mkdirSync(EVIDENCE_DIR, { recursive: true })
