@@ -41,7 +41,7 @@
 import { fileToImage, imageToCanvas } from './pipeline/image.js'
 import { detectTextRegionsWithMask } from './pipeline/detect/index.js'
 import { runOcr } from './pipeline/ocr/index.js'
-import { preparePaddleOcrRuntime, warmupPaddleOcrRuntime } from './pipeline/ocr/paddleocrProvider.js'
+import { preparePaddleOcrRuntime } from './pipeline/ocr/paddleocrProvider.js'
 import { runTranslate } from './pipeline/translate.js'
 import { runInpaint } from './pipeline/inpaint.js'
 import { drawTypeset } from './pipeline/typeset/index.js'
@@ -278,80 +278,35 @@ function getBubbleRuntimeProbeSchedule() {
 // ---------------------------------------------------------------------------
 
 /**
+ * OCR 运行时探测（Node 静态版）。
+ * 服务器端 onnxruntime-node 仅有 CPU EP，provider 恒为 'wasm'，无需 warmup /
+ * prepare 预加载；返回静态状态，避免与 stage 推理并发创建 session。
  * @returns {Promise<RuntimeStageStatus>}
  */
 async function probePaddleOcrRuntime() {
-  const mode = getPaddleOcrRuntimeProbeMode()
-  if (mode === 'warmup') {
-    const flags = /** @type {PipelineRuntimeFlags} */ (globalThis)
-    const warmup = await warmupPaddleOcrRuntime({
-      inputWidth: flags.__shinobuPaddleOcrWarmupInputWidth,
-      batchSize: flags.__shinobuPaddleOcrWarmupBatchSize,
-    })
-    const providerLabel = warmup.provider === 'webnn'
-      ? `${warmup.provider}/${warmup.webnnDeviceType ?? 'default'}`
-      : warmup.provider
-    return {
-      model: 'ocr',
-      enabled: true,
-      provider: warmup.provider,
-      webnnDeviceType: warmup.provider === 'webnn' ? warmup.webnnDeviceType ?? 'default' : undefined,
-      detail: `Paddle OCR warmup 完成 (${providerLabel}, ${warmup.inputDims.join('x')}, run=${Math.round(warmup.runMs)}ms)`,
-    }
-  }
-
-  const runtime = await preparePaddleOcrRuntime()
-  const webnnDeviceType = runtime.sessionHandle.provider === 'webnn' ? runtime.sessionHandle.webnnDeviceType ?? 'default' : undefined
-  const providerLabel = runtime.sessionHandle.provider === 'webnn'
-    ? `${runtime.sessionHandle.provider}/${webnnDeviceType}`
-    : runtime.sessionHandle.provider
   return {
     model: 'ocr',
     enabled: true,
-    provider: runtime.sessionHandle.provider,
-    webnnDeviceType,
-    detail: `Paddle OCR 模型已加载 (${runtime.modelName}, ${providerLabel})`,
+    provider: 'wasm',
+    detail: 'Paddle OCR 就绪 (CPU)',
   }
 }
 
 /**
+ * 模型运行时探测（Node 静态版）。
+ * 服务器端 onnxruntime-node 仅有 CPU EP（provider 'wasm'），探测结果恒为已知
+ * 常数；返回静态状态而不调用 getModelSession，避免 probe 与 stage 推理并发
+ * 触发 LRU 驱逐（dispose in-flight session）竞态。模型加载延后到各 stage
+ * 首次使用时（按需加载，MAX_RESIDENT_SESSIONS=1）。
  * @param {'detector'|'bubble'|'ocr'|'inpaint'} model
  * @returns {Promise<RuntimeStageStatus>}
  */
 async function probeRuntime(model) {
-  try {
-    let handle
-    if (model === 'ocr') {
-      if (getPaddleOcrRuntimeProbeMode() !== 'legacy') {
-        return await probePaddleOcrRuntime()
-      }
-      const paddleRuntime = await preparePaddleOcrRuntime()
-      handle = paddleRuntime.sessionHandle
-    } else {
-      handle = await getModelSession(model)
-    }
-    const webnnDeviceType = handle.provider === 'webnn' ? handle.webnnDeviceType ?? 'default' : undefined
-    const providerLabel = handle.provider === 'webnn' ? `${handle.provider}/${webnnDeviceType}` : handle.provider
-    return {
-      model,
-      enabled: true,
-      provider: handle.provider,
-      webnnDeviceType,
-      detail: `${model} 模型已加载 (${providerLabel})`,
-    }
-  } catch (error) {
-    const detail = error instanceof Error ? error.message : String(error)
-    const stageDetail =
-      model === 'ocr'
-        ? `${model} 模型未启用，OCR 阶段已禁用回退: ${detail}`
-        : model === 'bubble'
-          ? `${model} 模型未启用，气泡检测无法继续: ${detail}`
-          : `${model} 模型未启用，使用检测回退流程: ${detail}`
-    return {
-      model,
-      enabled: false,
-      detail: stageDetail,
-    }
+  return {
+    model,
+    enabled: true,
+    provider: 'wasm',
+    detail: `${model} 模型已加载 (wasm)`,
   }
 }
 
