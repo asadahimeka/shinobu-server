@@ -46,16 +46,6 @@ import * as jobStore from './jobStore.js'
 import { nodePlatform } from '../pipeline/nodePlatform.js'
 import { runPipeline, PipelineStageError } from '../translate/shinobu/index.js'
 
-// ---------------------------------------------------------------------------
-// Node global shims — MUST be in place before any pipeline module touches
-// `window.__httpRequest__` (accessed at CALL time in translators/llm.js and
-// translators/googleWeb.js; pointing window at globalThis makes the property
-// undefined → both take their fetch() path).
-// ---------------------------------------------------------------------------
-if (!('window' in globalThis)) {
-  globalThis.window = globalThis
-}
-
 /**
  * Font path used by the typeset stage (`MTX-SourceHanSans-CN`). Falls back to
  * the bundled font when FONT_PATH is not configured.

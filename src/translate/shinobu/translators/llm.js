@@ -6,9 +6,7 @@
  * Key adaptation: Shinobu uses extension runtime messaging to proxy LLM
  * requests through its background service worker. pixiv-viewer has no
  * background script, so `requestChatCompletion` directly calls the
- * LLM provider via `window.__httpRequest__` (Tampermonkey GM_xmlhttpRequest,
- * no CORS restrictions) with a `fetch()` fallback for non-userscript
- * environments.
+ * LLM provider via `fetch()` (Node always takes this path).
  *
  * Prompt builders, JSON extraction, response parsing, and error
  * classification are preserved verbatim from the Shinobu source.
@@ -489,7 +487,7 @@ function parseColumnsPayload(content) {
   return byId
 }
 
-// ── HTTP request (core adaptation: userscript-first + fetch fallback) ──
+// ── HTTP request (core adaptation: direct fetch) ──
 
 /**
  * Sends a chat completion request to an OpenAI-compatible endpoint.
@@ -497,10 +495,7 @@ function parseColumnsPayload(content) {
  * Shinobu uses extension runtime messaging → background → fetch.
  * pixiv-viewer has no background script, so we send the request directly:
  *
- *   1. `window.__httpRequest__(endpoint, JSON.stringify(config))`
- *      (Tampermonkey GM_xmlhttpRequest — no CORS restrictions)
- *   2. `fetch(endpoint, { method:'POST', headers, body })`
- *      (fallback for non-userscript environments)
+ *   `fetch(endpoint, { method:'POST', headers, body })`
  *
  * Reference: pixiv-api.js:63-77, helper.user.js:26-50
  *
@@ -522,54 +517,34 @@ async function requestChatCompletion(options, body) {
   let responseData
 
   try {
-    if (window.__httpRequest__) {
-      const config = {
-        method: 'POST',
-        headers,
-        data: body,
-      }
+    const resp = await fetch(endpoint, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(body),
+    })
+    if (!resp.ok) {
+      const text = await resp.text()
+      let detail = ''
       try {
-        const resp = await window.__httpRequest__(endpoint, JSON.stringify(config))
-        responseData = resp.data
-      } catch (e) {
-        // __httpRequest__ rejects with Error for non-2xx or network failures;
-        // Normalize into the standard error classification path
-        const statusMatch = e.message.match(/HTTP (\d+)/)
-        const status = statusMatch ? parseInt(statusMatch[1], 10) : undefined
-        const classification = classifyLlmFetchError(e, status)
-        console.warn('[llm] __httpRequest__ 失败:', classification.reason, e)
-        throw e
+        const parsed = JSON.parse(text)
+        detail = parsed.error?.message || parsed.error?.code || ''
+      } catch (_) {
+        // Not JSON
       }
-    } else {
-      const resp = await fetch(endpoint, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(body),
-      })
-      if (!resp.ok) {
-        const text = await resp.text()
-        let detail = ''
-        try {
-          const parsed = JSON.parse(text)
-          detail = parsed.error?.message || parsed.error?.code || ''
-        } catch (_) {
-          // Not JSON
-        }
-        const msg = detail
-          ? `LLM 请求失败 HTTP ${resp.status}: ${detail}`
-          : `LLM 请求失败 HTTP ${resp.status} ${resp.statusText}`
-        const err = new Error(msg)
-        if (
-          resp.status === 400 &&
-          (/(?:thinking|reasoning|model.*config)/iu.test(detail) ||
-            /(?:thinking|reasoning)/iu.test(text))
-        ) {
-          throw new LlmThinkingConfigError(msg)
-        }
-        throw err
+      const msg = detail
+        ? `LLM 请求失败 HTTP ${resp.status}: ${detail}`
+        : `LLM 请求失败 HTTP ${resp.status} ${resp.statusText}`
+      const err = new Error(msg)
+      if (
+        resp.status === 400 &&
+        (/(?:thinking|reasoning|model.*config)/iu.test(detail) ||
+          /(?:thinking|reasoning)/iu.test(text))
+      ) {
+        throw new LlmThinkingConfigError(msg)
       }
-      responseData = await resp.json()
+      throw err
     }
+    responseData = await resp.json()
 
     console.log('[llm] 请求完成', { durationMs: Date.now() - startedAt, endpoint: endpoint.replace(/\/\/.*@/, '//[REDACTED]@') })
     return responseData

@@ -5,10 +5,9 @@
  * Preserved verbatim: lang code normalization, response parsing,
  * URL construction.
  *
- * Key adaptation: uses `window.__httpRequest__` (Tampermonkey
- * GM_xmlhttpRequest) when available for environments where the Google
- * translate endpoint is blocked (e.g. mainland China). Falls back to
- * `fetch()` for standard environments.
+ * Key adaptation: fetches the Google translate endpoint via `fetch()`,
+ * optionally prefixed with COMMON_PROXY for environments where the
+ * endpoint is blocked (e.g. mainland China).
  */
 
 // Server wiring (task 1b): browser source imports COMMON_PROXY from '@consts'
@@ -78,19 +77,6 @@ export async function googleWebTranslate(text, from, to) {
     q: text,
   })
   const endpoint = `https://translate.googleapis.com/translate_a/single?${params.toString()}`
-
-  if (window.__httpRequest__) {
-    const config = {
-      method: 'GET',
-      headers: {},
-    }
-    try {
-      const resp = await window.__httpRequest__(endpoint, JSON.stringify(config))
-      return parseGoogleTranslateResponse(resp.data)
-    } catch (e) {
-      // On failure, fall through to fetch
-    }
-  }
 
   if (COMMON_PROXY) {
     try {
