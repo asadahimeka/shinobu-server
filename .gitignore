@@ -16,3 +16,7 @@ fonts/
 # Local config / secrets
 .env
 config.json
+
+# Superpowers workflow (SDD workspace + design/plan docs)
+.superpowers/
+docs/superpowers/
