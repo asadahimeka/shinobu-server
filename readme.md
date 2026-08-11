@@ -159,9 +159,9 @@ npm start       # 启动（--env-file-if-exists=.env 自动加载配置）
 
 - `ORT_THREADS=1`：ONNX 推理单线程，留一核给 HTTP/LLM（默认已是 1）
 - `MAX_IMAGE_BYTES=10m`（默认已是 10MB）
-- 模型常驻：默认 `MAX_RESIDENT_SESSIONS=4`（全部模型，~360MB），单槽队列下不会触发驱逐，
-  避免 probe 与推理并发时的 session 释放竞态；如内存吃紧可调低，但需知悉该风险。
-  2GB 内存峰值约 600MB-1GB，**务必配置 2-4GB swap**
+- 模型按需加载：默认 `MAX_RESIDENT_SESSIONS=1`（每个 stage 切换时加载当前模型、驱逐
+  上一模型——串行无竞态，因为 probe 已静态化不预加载），2GB 内存峰值约 600MB-1GB，
+  **务必配置 2-4GB swap**
 - 异步 API 已规避 Cloudflare 100s / nginx 60s 超时：HTTP 请求 <100ms 返回，
   慢任务后台执行，客户端轮询
 - nginx 如仍要调大：`proxy_read_timeout 300s;` 仅影响直连场景

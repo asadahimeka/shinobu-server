@@ -122,12 +122,10 @@ export async function getModelUrl(name) {
 // Session cache (dedup, reuse) — same shape as the browser registry
 // ---------------------------------------------------------------------------
 
-/** 同时驻留的最大 session 数。默认 4 = 全部模型（detector/bubble/ocr/inpaint）：
- *  单槽队列下同一时刻最多 1 个 job，且 pipeline 内 probe 与 stage 推理并发，
- *  若驻留上限低于模型总数，驱逐可能在推理 in-flight 时 dispose session
- *  （native run 在已释放 session 上执行 → job 失败/崩溃）。
- *  4 模型全驻留 ~360MB，2C2G 可承受；如确需调低请同时评估 probe 并发风险。 */
-const MAX_RESIDENT_SESSIONS = parseInt(process.env.MAX_RESIDENT_SESSIONS, 10) || 4
+/** 同时驻留的最大 session 数。默认 1 = 按需加载（pipeline 各 stage 串行，
+ *  同刻只驻留当前 stage 的模型，2C2G 内存峰值 ~1 个模型）。probe 已静态化，
+ *  无并发加载方，驱逐只发生在 stage 切换的串行间隙，无 in-flight 竞态。 */
+const MAX_RESIDENT_SESSIONS = parseInt(process.env.MAX_RESIDENT_SESSIONS, 10) || 1
 
 /** @type {Map<string, {handle: WorkerSessionHandle, lastUsed: number}>} — LRU entries */
 const sessionCache = new Map()
