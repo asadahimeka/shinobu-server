@@ -90,7 +90,7 @@ export async function runInference(sessionId, feeds) {
 
 /**
  * @param {string} modelUrl
- * @returns {Promise<import('./selfCheck.js').RuntimeSelfCheckReport>}
+ * @returns {Promise<Object>}
  */
 export async function probeRuntime(modelUrl) {
   return nodeBridge.probeRuntime(modelUrl)

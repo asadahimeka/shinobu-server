@@ -14,7 +14,6 @@
 /** @typedef {import('./onnxTypes.js').RuntimeProvider} RuntimeProvider */
 /** @typedef {import('./onnxTypes.js').WebNnDeviceType} WebNnDeviceType */
 /** @typedef {import('./onnxSessionOptions.js').OnnxSessionOptions} OnnxSessionOptions */
-/** @typedef {import('./selfCheck.js').RuntimeSelfCheckReport} RuntimeSelfCheckReport */
 
 /**
  * @typedef {Object} TensorTransport - Plain-data representation of ort.Tensor for comlink boundary
