@@ -43,6 +43,7 @@ import { sha256, configSignature, get, set, cacheDir } from './cache.js'
 import { buildTranslateConfig } from './llmConfig.js'
 import { enqueue } from './queue.js'
 import * as jobStore from './jobStore.js'
+import * as workerClient from './workerClient.js'
 import { nodePlatform } from '../pipeline/nodePlatform.js'
 import { runPipeline, PipelineStageError } from '../translate/shinobu/index.js'
 
@@ -270,8 +271,12 @@ export async function submitTranslate(imageUrl, userOptions = {}) {
 }
 
 /**
- * Background job runner — wraps translateByUrl, feeds progress into the job,
- * persists the PNG on success, records the structured error on failure.
+ * Background job runner — dispatches to the translate worker.
+ * 主线程不再直接跑翻译管线（onnxruntime-node 同步推理会阻塞事件循环）；
+ * 状态流转由 workerClient 的消息回调驱动：
+ *   progress → jobStore.updateJob(stage/percent)
+ *   done     → jobStore.saveJobResult（主线程落盘）
+ *   failed   → jobStore.updateJob(failed)
  * @param {string} id
  * @param {string} imageUrl
  * @param {Object} userOptions
@@ -279,21 +284,11 @@ export async function submitTranslate(imageUrl, userOptions = {}) {
 async function runJob(id, imageUrl, userOptions) {
   jobStore.updateJob(id, { status: 'running' })
   try {
-    const result = await translateByUrl(imageUrl, userOptions, progress =>
-      jobStore.updateJob(id, {
-        stage: progress.stage,
-        percent: progress.percent,
-      })
-    )
-    await jobStore.saveJobResult(id, result.pngBuffer, {
-      regions: result.regions,
-      durationMs: result.durationMs,
-      noText: result.noText,
-      cacheHit: result.cacheHit,
-    })
+    await workerClient.submit(id, imageUrl, userOptions)
   } catch (err) {
-    const code = err && err.error ? err.error : 'INTERNAL'
-    const message = (err && err.message) || '翻译失败'
+    // submit 本身失败（worker 初始化异常等）——job 标 failed
+    const code = err && err.error ? err.error : 'WORKER_CRASHED'
+    const message = (err && err.message) || 'worker 派发失败'
     jobStore.updateJob(id, { status: 'failed', error: code, message })
   }
 }
