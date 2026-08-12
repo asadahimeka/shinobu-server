@@ -8,7 +8,7 @@
  */
 import config from './config.js'
 import { createApp } from './src/http/app.js'
-
+import * as workerClient from './src/services/workerClient.js'
 let translateService
 try {
   const mod = await import('./src/services/translateService.js')
@@ -34,15 +34,21 @@ const server = app.listen(config.PORT, () => {
 })
 
 let shuttingDown = false
-function shutdown() {
+async function shutdown() {
   if (shuttingDown) return
   shuttingDown = true
   console.log('[server] shutting down...')
+  // 强制退出兜底：先注册，即使 worker terminate 挂起也能退出
+  setTimeout(() => process.exit(0), 5000).unref?.()
+  try {
+    await workerClient.shutdown()
+  } catch (err) {
+    console.warn('[server] worker shutdown error:', err.message)
+  }
   server.close(() => {
     console.log('[server] stopped')
     process.exit(0)
   })
-  setTimeout(() => process.exit(0), 5000).unref?.()
 }
 process.on('SIGINT', shutdown)
 process.on('SIGTERM', shutdown)
