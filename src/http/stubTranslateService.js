@@ -18,9 +18,10 @@ const TINY_PNG = Buffer.from(
 )
 
 /** 内部同步执行体（原 translateByUrl 函数体） */
-async function stubTranslateByUrl(imageUrl) {
+async function stubTranslateByUrl(imageUrl, _options = {}, onProgress) {
   const url = imageUrl || ''
   if (url.includes('slow')) {
+    onProgress?.({ stage: 'load', percent: 5 })
     await new Promise(resolve => setTimeout(resolve, 800))
   }
   if (url.includes('too-large')) {
