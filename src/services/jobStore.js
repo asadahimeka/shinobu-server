@@ -114,6 +114,9 @@ export function updateJob(id, patch) {
 export async function saveJobResult(id, pngBuffer, meta = {}) {
   const job = jobs.get(id)
   if (!job) return false
+  // 与 cache.js set() 一致：部署环境可能在运行期清理 .cache/（如 rm -rf），
+  // 模块加载时的一次性 mkdir 不保证目录仍在，写入前必须重建。
+  await fsp.mkdir(jobsDir, { recursive: true })
   const finalPath = resultPath(id)
   const tmp = `${finalPath}.tmp-${process.pid}-${crypto.randomBytes(4).toString('hex')}`
   await fsp.writeFile(tmp, pngBuffer)

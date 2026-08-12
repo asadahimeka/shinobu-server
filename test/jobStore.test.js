@@ -55,6 +55,20 @@ test('saveJobResult 落盘 + loadJobResult 读回，meta 同步', async () => {
   assert.ok(fs.existsSync(file))
 })
 
+test('saveJobResult 在 jobs 目录被删后仍能重建并落盘（部署清理场景）', async () => {
+  // 模拟部署环境在运行期 rm -rf .cache：删掉 jobs 目录
+  fs.rmSync(jobsDir, { recursive: true, force: true })
+  assert.ok(!fs.existsSync(jobsDir))
+  const { id } = jobStore.createJob('https://example.com/f.png', {})
+  await jobStore.saveJobResult(id, TINY_PNG, { regions: 1 })
+  const job = jobStore.getJob(id)
+  assert.equal(job.status, 'done')
+  const buf = await jobStore.loadJobResult(id)
+  assert.ok(buf.equals(TINY_PNG))
+  const file = path.join(jobsDir, `${id}.png`)
+  assert.ok(fs.existsSync(file))
+})
+
 test('TTL sweep 清理过期 job 与落盘文件', async () => {
   // getJob 返回副本，直接改 updatedAt 不会影响内部状态；
   // 回拨时钟让 createdAt/updatedAt 天然超过 TTL，再恢复真实时钟触发 sweep。
