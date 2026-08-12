@@ -70,6 +70,7 @@ job 不存在 → `404 {error:'JOB_NOT_FOUND'}`
 | 429 | `LLM_RATE_LIMITED` | LLM 限流（含 `Retry-After` 头） |
 | 502 | `IMAGE_FETCH_FAILED` | 图片下载失败（网络/404/防盗链） |
 | 503 | `BUSY` / `TIMEOUT` | ~~队列忙/排队超时~~ → 现为 job 的 `failed` 状态（`error:'BUSY'/'TIMEOUT'`），HTTP 层不再返回 |
+| —（job 级） | `WORKER_CRASHED` | 翻译 worker 意外退出，job 标记失败；自动恢复，客户端可重试 |
 | 500 | `LLM_CONFIG_MISSING` | 服务端未配置 LLM key |
 | 500 | `PIPELINE_FAILED` | 翻译管线阶段失败（含 `stage` 字段） |
 | 500 | `INTERNAL` | 其他内部错误 |
@@ -121,6 +122,11 @@ curl -H "Authorization: Bearer <TOKEN>" http://localhost:3000/health
 ## 4. 行为说明
 
 - **串行队列**：ONNX 会话非线程安全，同一时间只处理一个翻译任务；并发任务排队（超 3 个排队或等待 >60s → job 以 `failed` 状态结束，`error:'BUSY'/'TIMEOUT'`）。
+- **推理隔离（worker_threads）**：翻译管线运行在独立 worker 线程，主线程专职 HTTP
+  与任务轮询——2C2G 上 ONNX 推理（秒级到分钟级）期间，轮询/健康检查仍可即时响应
+  （onnxruntime-node 的推理在单进程内会阻塞事件循环，worker 隔离避免此问题）。
+- **worker 崩溃恢复**：若翻译 worker 意外退出，正在处理的 job 标记为失败
+  （`error: 'WORKER_CRASHED'`），worker 自动重建，后续请求不受影响。
 - **缓存**：服务端按图片内容 sha256 + 配置签名缓存结果（`.cache/`，LRU 500 条）；同图同配置二次请求命中缓存（<1s）。
 - **LLM**：任意 OpenAI 兼容端点（服务端配置 `LLM_BASE_URL` / `LLM_API_KEY` / `LLM_MODEL`）。
 - **图片下载**：服务端带 `Referer: https://www.pixiv.net/` 下载；若网络无法直连 pixiv CDN，配置 `IMAGE_PROXY` 前缀代理。
