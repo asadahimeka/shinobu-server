@@ -45,13 +45,26 @@ function failJob(id, error, message) {
  */
 function createWorker() {
   const w = new Worker(WORKER_PATH)
-  w.on('message', msg => {
+  w.on('message', async msg => {
     if (!msg || typeof msg.type !== 'string') return
     if (msg.type === 'progress') {
       updateJob(msg.jobId, { stage: msg.stage, percent: msg.percent })
     } else if (msg.type === 'done') {
       pendingJobs.delete(msg.jobId)
-      saveJobResult(msg.jobId, Buffer.from(msg.pngBuffer), msg.meta)
+      try {
+        // pngBuffer 已 transfer 到主线程，此时主线程独占该 ArrayBuffer——
+        // 零拷贝 view 构造（不复制字节）。transferred buffer 由 msg.pngBuffer
+        // 持有（byteOffset/byteLength 可能非 0，不能直接 Buffer.from(buffer)）。
+        await saveJobResult(
+          msg.jobId,
+          Buffer.from(msg.pngBuffer.buffer, msg.pngBuffer.byteOffset, msg.pngBuffer.byteLength),
+          msg.meta
+        )
+      } catch (err) {
+        // 磁盘写入失败（ENOSPC/EACCES 等）不能成为 unhandledRejection 崩溃进程——
+        // 标记 job 失败，客户端可重试。旧 runJob 的 try/catch 语义在此恢复。
+        failJob(msg.jobId, 'INTERNAL', `结果落盘失败: ${err.message}`)
+      }
     } else if (msg.type === 'failed') {
       pendingJobs.delete(msg.jobId)
       failJob(msg.jobId, msg.error, msg.message)
@@ -92,6 +105,7 @@ export async function initWorker() {
     const onReady = msg => {
       if (msg && msg.type === 'ready') {
         w.off('message', onReady)
+        w.off('error', reject)
         worker = w
         resolve(w)
       }

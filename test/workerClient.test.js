@@ -10,7 +10,7 @@ const tmpDir = await fsp.mkdtemp(path.join(os.tmpdir(), 'pxv-workerclient-test-'
 process.env.CACHE_DIR = tmpDir
 process.env.WORKER_TRANSLATE_STUB = '1'
 
-const { createJob, getJob, updateJob, saveJobResult } = await import('../src/services/jobStore.js')
+const { createJob, getJob } = await import('../src/services/jobStore.js')
 const workerClient = await import('../src/services/workerClient.js')
 
 after(async () => {
